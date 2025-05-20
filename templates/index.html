@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard de Backups - Clientes TandemStudio</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+			<h2>TandemStudio Backups</h2>
+            <ul>
+                <li><a href="/">General Summary</a></li>
+                <li><a href="/unsuccessful_tasks">Errors and Warnings</a></li>
+                <!-- Agrega más items según sea necesario -->
+            </ul>
+        </div>
+			<div class="dashboard">
+				{% for row in data %}
+				<a href="/status/{{ row[0] }}" class="card-link">
+					<div class="card {% if row[1] == 'ok' %}green{% elif row[1] == 'warn' %}yellow{% else %}red{% endif %}">
+						<h3>{{ row[0] }}</h3>
+						<p>
+							<strong>Backups:</strong> {{ row[2] }}
+							<br>
+							<strong>Tiering:</strong> {{ row[3] }}
+							<br>
+							<strong>Last Seen:</strong> <span class="last-seen" data-last-seen="{{ row[4] }}"> {{ row[4] }}</span>
+							<br>
+							<strong>Config Backup:</strong> {{ row[5] }}
+						</p>
+					</div>
+				</a>
+            {% endfor %}
+        </div>
+    </div>
+<script>
+function checkLastSeen() {
+    const lastSeenElements = document.querySelectorAll('.last-seen');
+
+    lastSeenElements.forEach(el => {
+        const utcDate = new Date(el.getAttribute('data-last-seen'));
+
+        // Ajustar a GMT-3 manualmente
+        const localTimestamp = utcDate.getTime() - (3 * 60 * 60 * 1000); // restar 3 horas en ms
+        const localDate = new Date(localTimestamp);
+
+        // Mostrar fecha local en formato legible
+        const localDateStr = localDate.toLocaleString('es-AR', {
+            hour12: false,
+            dateStyle: 'short',
+            timeStyle: 'short'
+        });
+        el.textContent = localDateStr;
+
+        // Comparar contra ahora menos 24 horas
+        const now = new Date();
+        const nowMinus24h = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+        if (localDate < nowMinus24h) {
+            el.innerHTML += " ⚠️";
+            el.closest('.card').style.border = "2px solid #FFA500";
+        }
+    });
+}
+
+document.addEventListener('DOMContentLoaded', checkLastSeen);
+</script>
+</body>
+</html>

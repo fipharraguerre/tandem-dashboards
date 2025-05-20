@@ -1,0 +1,243 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Status de Cliente - {{ client_name }}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/luxon"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-adapter-luxon"></script>
+</head>
+<body>
+    <div class="container">
+        <!-- Sidebar -->
+        <div class="sidebar">
+            <h2>TandemStudio Backups</h2>
+            <ul>
+                <li><a href="/">General Summary</a></li>
+                <li><a href="/unsuccessful_tasks">Errors and Warnings</a></li>
+            </ul>
+			<h3>Filtrar por Tipo</h3>
+			<label><input type="checkbox" class="filter-type" value="BackupJob,Backup" clear> Backup</label><br>
+			<label><input type="checkbox" class="filter-type" value="Incremental" clear> Backup incremental</label><br>
+			<label><input type="checkbox" class="filter-type" value="Full" clear> Backup full</label><br>
+			<label><input type="checkbox" class="filter-type" value="Snapshot" clear> Replica</label><br>
+                        <label><input type="checkbox" class="filter-type" value="VeeamConfigurationBackup" clear> Config</label><br>
+			<label><input type="checkbox" class="filter-type" value="TieringJob" clear> Offload</label><br>
+			<br>
+			<h3>Filtrar por Resultado</h3>
+			<label><input type="checkbox" class="filter-result" value="Success,Completed,ok" clear> Success</label><br>
+			<label><input type="checkbox" class="filter-result" value="Warn" clear> Warning</label><br>
+			<label><input type="checkbox" class="filter-result" value="Fail" clear> Failed</label><br>
+        </div>
+
+        <!-- Main Content -->
+        <div class="main-content">
+            <h1>Status de {{ client_name }}</h1>
+
+            <!-- Contenedor para los gráficos y tabla -->
+            <div class="content-grid">
+                <div class="chart-container">
+                    <h2>Repositorios y Discos</h2>
+                    <canvas id="historyChart" width="800" height="400"></canvas>
+                </div>
+                <div class="chart-container">
+                    <h2>Backups completados</h2>
+                    <canvas id="anotherChart" width="800" height="400"></canvas>
+                </div>
+                <div class="table-container">
+                    <h2>Backup Results</h2>
+                    <table id="statusTable">
+                        <thead>
+                            <tr>
+                                <th>Fecha de Creación (GMT)</th>
+                                <th>Nombre de VM</th>
+                                <th>Tipo</th>
+                                <th>Resultado</th>
+                                <th>Detalle</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for result in results %}
+                            <tr>
+                                <td>{{ result[0] }}</td>
+                                <td>{{ result[1] }}</td>
+                                <td>{{ result[2] }}</td>
+                                <td>{{ result[3] }}</td>
+                                <td>{{ result[4] | nl2br | safe }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+const historyData = {{ history_data|tojson }};
+console.log(historyData);  // Revisa los datos que llegan
+
+// Filtrar descriptores que coincidan con "HDD:" o "Repo:"
+const descriptors = [...new Set(historyData.map(item => item.descriptor))]
+    .filter(descriptor => /^(HDD:|Repo:)/.test(descriptor)); // Filtra por patrón
+
+const datasets = descriptors.map(descriptor => {
+    return {
+        label: descriptor,
+        data: historyData.filter(item => item.descriptor === descriptor).map(item => item.value),
+        borderColor: '#' + Math.floor(Math.random() * 16777215).toString(16), // Random color para cada serie
+        fill: false
+    };
+});
+
+const data = {
+    labels: historyData.map(entry => entry.datetime),  // Usa las fechas como etiquetas del eje X
+    datasets: datasets // Usa los datasets filtrados por descriptor
+};
+
+const options = {
+    responsive: true,
+    maintainAspectRatio: true, // Mantener relación de aspecto
+    scales: {
+        x: {
+            type: 'category',  // Eje X de tipo "categoría"
+            title: {
+                display: true,
+                text: 'Fecha'
+            },
+            ticks: {
+                maxTicksLimit: 4 // Limita a 4 etiquetas en el eje X
+            }
+        },
+        y: {
+            type: 'linear', // Eje Y numérico
+            position: 'left',
+            title: {
+                display: true,
+                text: 'Porcentaje de Uso (%)'
+            },
+            min: 0,  // Límite inferior fijo
+            max: 100 // Límite superior fijo
+        }
+    }
+};
+
+// Crear el gráfico
+const ctx = document.getElementById('historyChart').getContext('2d');
+const chart = new Chart(ctx, {
+    type: 'line', // Tipo de gráfico (línea)
+    data: data,
+    options: options
+});
+
+    </script>
+    <script>
+// Filtrar los datos para "dailyResultBackups"
+const dailyData = historyData.filter(item => item.descriptor === "dailyResultBackups");
+
+// Crear dataset para el segundo gráfico
+const dailyDataset = {
+    label: 'Tasa de éxito de backups',
+    data: dailyData.map(item => item.value),
+    borderColor: 'green', // Línea de color para los datos
+    pointBackgroundColor: dailyData.map(item => item.value < 1 ? 'orange' : 'green'), // Puntos naranjas si el valor es < 1
+    fill: false
+};
+
+// Configurar el segundo gráfico
+const dailyChartData = {
+    labels: dailyData.map(item => item.datetime), // Fechas como etiquetas del eje X
+    datasets: [dailyDataset]
+};
+
+const dailyChartOptions = {
+    responsive: true,
+    maintainAspectRatio: true,
+    scales: {
+        x: {
+            type: 'category',
+            title: {
+                display: true,
+                text: 'Fecha'
+            },
+            ticks: {
+                maxTicksLimit: 4
+            }
+        },
+        y: {
+            type: 'linear',
+            position: 'left',
+            title: {
+                display: true,
+                text: 'Tasa de Éxito (0-1)'
+            },
+            min: 0,
+            max: 1 // Límite superior fijo para el eje Y
+        }
+    }
+};
+
+// Crear el segundo gráfico
+const ctx2 = document.getElementById('anotherChart').getContext('2d');
+const dailyChart = new Chart(ctx2, {
+    type: 'line',
+    data: dailyChartData,
+    options: dailyChartOptions
+});
+    </script>
+    <script>
+        $(document).ready(function() {
+            if (!$.fn.DataTable.isDataTable('#statusTable')) {
+                var table = $('#statusTable').DataTable({
+                    "paging": false,
+                    "info": false,
+                    "searching": false
+                });
+            }
+
+            function filterTable() {
+                var selectedTypes = [];
+                var selectedResults = [];
+
+                $('.filter-type:checked').each(function() {
+                    selectedTypes.push(...$(this).val().split(','));
+                });
+
+                $('.filter-result:checked').each(function() {
+                    selectedResults.push(...$(this).val().split(','));
+                });
+
+                table.rows().every(function() {
+                    var data = this.data();
+                    var showRow = true;
+
+                    if (selectedTypes.length > 0) {
+                        showRow = selectedTypes.some(function(val) {
+                            return new RegExp(val.replace('*', '.*'), 'i').test(data[2]);
+                        });
+                    }
+
+                    if (showRow && selectedResults.length > 0) {
+                        showRow = selectedResults.some(function(val) {
+                            return new RegExp(val.replace('*', '.*'), 'i').test(data[3]);
+                        });
+                    }
+
+                    $(this.node()).toggle(showRow);
+                });
+            }
+
+            $('.filter-type, .filter-result').on('change', function() {
+                filterTable();
+            });
+
+            filterTable();
+        });
+    </script>
+</body>
+</html>

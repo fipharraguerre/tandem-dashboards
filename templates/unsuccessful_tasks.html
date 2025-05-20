@@ -1,0 +1,130 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Errors and Warnings</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="https://cdn.datatables.net/1.11.5/css/jquery.dataTables.min.css">
+    <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+    <script src="https://cdn.datatables.net/1.11.5/js/jquery.dataTables.min.js"></script>
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>TandemStudio Backups</h2>
+            <ul>
+                <li><a href="/">General Summary</a></li>
+                <li><a href="/unsuccessful_tasks">Errors and Warnings</a></li>
+            </ul>
+            <h3>Filtrar por Tipo</h3>
+            <label><input type="checkbox" class="filter-type" value="BackupJob,Backup" clear> Backup</label><br>
+            <label><input type="checkbox" class="filter-type" value="Incremental" clear> Backup incremental</label><br>
+            <label><input type="checkbox" class="filter-type" value="Full" clear> Backup full</label><br>
+            <label><input type="checkbox" class="filter-type" value="TieringJob" clear> Offload</label><br>
+            <br>
+            <h3>Filtrar por Resultado</h3>
+            <label><input type="checkbox" class="filter-result" value="Warn" checked> Warning</label><br>
+            <label><input type="checkbox" class="filter-result" value="Fail" checked> Failed</label><br>
+        </div>
+
+        <div class="admin-panel">
+            <h2>Errors and Warnings</h2>
+            <table id="unsuccessfulTasksTable">
+                <thead>
+                    <tr>
+                        <th>Hostname</th>
+                        <th>Fecha de Creación</th>
+                        <th>Nombre de VM</th>
+                        <th>Tipo</th>
+                        <th>Resultado</th>
+                        <th>Detalle</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for result in results %}
+                    <tr>
+                        <td>{{ result[0] }}</td>
+                        <td>{{ result[1] }}</td>
+                        <td>{{ result[2] }}</td>
+                        <td>{{ result[3] }}</td>
+                        <td>{{ result[4] }}</td>
+                        <td>{{ result[5] | nl2br | safe }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+
+    <script>
+	$(document).ready(function() {
+		// Initialize DataTable and store it in the 'table' variable
+		var table = $('#unsuccessfulTasksTable').DataTable({
+			paging: true, // Enable pagination
+			info: true, // Show table info
+			searching: true, // Enable search box
+			pageLength: 50, // Show 50 results per page
+			order: [[1, 'desc']], // Sort by 2nd column (Fecha de creación) in descending order
+			language: {
+				url: '//cdn.datatables.net/plug-ins/1.11.5/i18n/Spanish.json' // Optional: load Spanish translations
+			}
+		});
+
+		function filterTable() {
+			var selectedTypes = [];
+			var selectedResults = [];
+
+			// Collect selected types
+			$('.filter-type:checked').each(function() {
+				selectedTypes.push(...$(this).val().split(',')); // Handle multiple types
+			});
+
+			// Collect selected results
+			$('.filter-result:checked').each(function() {
+				selectedResults.push(...$(this).val().split(',')); // Handle multiple results
+			});
+
+			// Apply filtering to the DataTable rows
+			table.rows().every(function() {
+				var data = this.data();
+
+				var showRow = true;
+
+				// Filter by Type
+				if (selectedTypes.length > 0) {
+					showRow = selectedTypes.some(function(val) {
+						var regexType = new RegExp(val.replace('*', '.*'), 'i');
+						return regexType.test(data[3]); // 'Type' is in column 4 (index 3)
+					});
+				}
+
+				// Filter by Result
+				if (showRow && selectedResults.length > 0) {
+					showRow = selectedResults.some(function(val) {
+						var regexResult = new RegExp(val.replace('*', '.*'), 'i');
+						return regexResult.test(data[4]); // 'Result' is in column 5 (index 4)
+					});
+				}
+
+				if (showRow) {
+					$(this.node()).show();
+				} else {
+					$(this.node()).hide();
+				}
+			});
+
+			table.draw(); // Trigger the table redraw after filtering
+		}
+
+		// Attach filterTable to checkbox change events
+		$('.filter-type, .filter-result').on('change', function() {
+			filterTable();
+		});
+
+		// Initial filtering
+		filterTable();
+	});
+    </script>
+</body>
+</html>

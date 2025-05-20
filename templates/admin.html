@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Vincular Clientes y Hosts</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+</head>
+<body>
+    <div class="container">
+        <div class="sidebar">
+            <h2>Menú</h2>
+            <ul>
+                <li><a href="/">General Summary</a></li>
+                <li><a href="/unsuccessful_tasks">Errors and Warnings</a></li>
+                <li><a href="/admin">Admin Panel</a></li>
+                <!-- Agrega más items según sea necesario -->
+            </ul>
+        </div>
+        <div class="admin-panel">
+            <h2>Admin Panel - Vincular Clientes y Hosts</h2>
+            <form method="post">
+                <label for="client_name">Cliente:</label>
+                <select name="client_name" id="client_name">
+                    {% for client in clients %}
+                    <option value="{{ client[0] }}">{{ client[0] }}</option>
+                    {% endfor %}
+                </select>
+
+                <label for="host_name">Host:</label>
+                <select name="host_name" id="host_name">
+                    {% for table in tables %}
+                    <option value="{{ table[0] }}">{{ table[0] }}</option>
+                    {% endfor %}
+                </select>
+
+                <button type="submit">Vincular</button>
+            </form>
+
+            <h3>Relaciones Existentes</h3>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Cliente (el nombre en la app)</th>
+                        <th>Host (como se define el uploader)</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for relation in client_host_relations %}
+                    <tr>
+                        <td>{{ relation[0] }}</td>
+                        <td>{{ relation[1] }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+
+            <h3>Administrar Clientes</h3>
+            <form method="post" action="/admin/add_client">
+                <label for="new_client_name">Agregar Cliente:</label>
+                <input type="text" name="new_client_name" id="new_client_name" required>
+                <button type="submit">Agregar</button>
+            </form>
+
+            <h4>Eliminar Cliente</h4>
+            <form method="post" action="/admin/delete_client">
+                <label for="delete_client_name">Seleccionar Cliente:</label>
+                <select name="delete_client_name" id="delete_client_name">
+                    {% for client in clients %}
+                    <option value="{{ client[0] }}">{{ client[0] }}</option>
+                    {% endfor %}
+                </select>
+                <button type="submit">Eliminar</button>
+            </form>
+        </div>
+    </div>
+</body>
+</html>
+
