@@ -1,6 +1,5 @@
 ### ✅ `README.md`
 
-```markdown
 # Flask Veeam Dashboard
 
 Aplicación web escrita en Flask para visualizar el estado de backups y otras métricas de Veeam, basada en datos de una base MariaDB.
@@ -8,8 +7,6 @@ Aplicación web escrita en Flask para visualizar el estado de backups y otras m�
 ## 📦 Estructura del Proyecto
 
 ```
-
-.
 ├── app.py                # Punto de entrada principal, registra los Blueprints
 ├── .env                  # Variables de entorno (no se sube a Git)
 ├── routes/               # Rutas agrupadas por funcionalidad
