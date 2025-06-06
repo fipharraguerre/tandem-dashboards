@@ -42,7 +42,7 @@ def update_client_status():
                     SUM(CASE WHEN result IN ('Success', 'ok', 'Completed') AND type LIKE '%Backup%' THEN 1 ELSE 0 END) AS success_count_backup,
                     SUM(CASE WHEN result = 'Warn' AND type LIKE '%Backup%' THEN 1 ELSE 0 END) AS warn_count_backup,
                     SUM(CASE WHEN result = 'Fail' AND type LIKE '%Backup%' THEN 1 ELSE 0 END) AS fail_count_backup,
-                    MAX(datetime) AS last_seen_backup  -- Get the latest datetime for this host
+                    MAX(CASE WHEN type LIKE '%Backup%' THEN datetime ELSE NULL END) AS last_seen_backup  -- Get the latest datetime for this host
                 FROM `{host_name}`
             """)
             result_backup = cursor.fetchone()
@@ -60,7 +60,7 @@ def update_client_status():
                     SUM(CASE WHEN result IN ('Success', 'ok', 'Completed') AND type = 'TieringJob' THEN 1 ELSE 0 END) AS success_count_tiering,
                     SUM(CASE WHEN result = 'Warn' AND type = 'TieringJob' THEN 1 ELSE 0 END) AS warn_count_tiering,
                     SUM(CASE WHEN result = 'Fail' AND type = 'TieringJob' THEN 1 ELSE 0 END) AS fail_count_tiering,
-                    MAX(datetime) AS last_seen_tiering  -- Get the latest datetime for this host
+                    MAX(CASE WHEN type = 'TieringJob' THEN datetime ELSE NULL END) AS last_seen_tiering
                 FROM `{host_name}`
             """)
             result_tiering = cursor.fetchone()

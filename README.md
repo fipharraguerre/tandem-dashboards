@@ -7,20 +7,20 @@ Aplicación web escrita en Flask para visualizar el estado de backups y otras m�
 ## 📦 Estructura del Proyecto
 
 ```
-├── app.py                # Punto de entrada principal, registra los Blueprints
-├── .env                  # Variables de entorno (no se sube a Git)
-├── routes/               # Rutas agrupadas por funcionalidad
+├── app.py                # main / blueprints
+├── .env                  # envvars (.gitignore)
+├── routes/               # rutas por funcionalidad
 │   ├── **init**.py
 │   ├── index.py
 │   ├── admin.py
 │   ├── status.py
 │   └── unsuccessful.py
-├── auth.py               # Lógica de autenticación y manejo de login
-├── core.py               # Lógica de negocio (estado de clientes)
-├── db.py                 # Conexión a la base de datos usando variables de entorno
-├── logger.py             # Configuración de logging con rotación
-├── templates/            # Archivos HTML para Flask
-└── static/               # Archivos estáticos (CSS, JS, imágenes)
+├── auth.py               # lógica de autenticación y login
+├── core.py               # lógica de las tarjetas de estado de clientes
+├── db.py                 # conexión a la base
+├── logger.py             # logs
+├── templates/            # HTMLs
+└── static/               # archivos estáticos
 
 ```
 
