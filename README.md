@@ -85,6 +85,66 @@ graph TD
 
 ---
 
+## Descripción de la aplicación `core.py`
+
+Este dashboard web proporciona una vista centralizada del estado de los backups de todos los clientes de TandemStudio. La aplicación monitorea automáticamente los trabajos de backup desde múltiples fuentes (servidores Veeam y Azure Recovery Vault) y presenta el estado de cada cliente en tarjetas codificadas por colores.
+
+## Cómo funciona
+
+### Flujo de la aplicación
+
+1. **Solicitud del navegador**: Cuando un usuario accede al dashboard desde el navegador, la aplicación web ejecuta la función principal de actualización.
+
+2. **Procesamiento de datos (`update_client_status()`)**: 
+   - Se conecta a la base de datos y obtiene la lista completa de clientes
+   - Para cada cliente, identifica todos los hostnames asociados (servidores/servicios de backup)
+   - Cada hostname en la base de datos representa:
+     - Un servidor Veeam
+     - Un RecoveryVault de Azure
+     - Otro servicio de backup configurado
+
+3. **Análisis por cliente**:
+   - **Trabajos de Backup**: Cuenta los trabajos exitosos, con advertencias y fallidos en las últimas 24 horas
+   - **Trabajos de Tiering/Offload**: Analiza los procesos de migración de datos a almacenamiento secundario
+   - **Backup de Configuración**: Verifica el estado del último backup de configuración de Veeam
+   - **Última actividad**: Registra el timestamp más reciente de cualquier actividad
+
+4. **Determinación del estado**:
+   - 🔴 **Rojo (Fail)**: Si hay trabajos de backup fallidos
+   - 🟡 **Amarillo (Warning)**: Si hay advertencias en backups o fallos en offloads
+   - 🟢 **Verde (OK)**: Si todos los trabajos fueron exitosos
+
+5. **Actualización de la base de datos**: Guarda el estado calculado y los mensajes de resumen para cada cliente.
+
+6. **Presentación web**: Muestra una tarjeta por cada cliente con:
+   - Estado visual (color de la tarjeta)
+   - Resumen de trabajos de backup
+   - Estado de trabajos de tiering
+   - Última actividad registrada
+   - Estado del backup de configuración
+
+### Estructura de datos
+
+- **Tabla `clientes`**: Contiene la información básica de cada cliente y su estado actual
+- **Tabla `client_hosts`**: Relaciona cada cliente con sus hostnames/servicios
+- **Tablas dinámicas**: Una tabla por cada hostname que almacena el historial de trabajos de backup
+
+### Características adicionales
+
+- **Monitoreo en tiempo real**: Detección automática de servicios inactivos (más de 24 horas sin actividad)
+- **Navegación detallada**: Cada tarjeta es clickeable para ver detalles específicos del cliente
+- **Alertas visuales**: Indicadores de advertencia para servicios que no han reportado actividad reciente
+- **Zona horaria local**: Conversión automática de timestamps a GMT-3 (Argentina)
+
+## Tecnologías utilizadas
+
+- **Backend**: Python con Flask
+- **Base de datos**: MySQL
+- **Frontend**: HTML5, CSS3, JavaScript
+- **Monitoreo**: Integración con Veeam Backup & Replication y Azure Recovery Services
+
+---
+
 ## 🐳 Contenerización (a futuro)
 
 El proyecto está preparado para correr en contenedores (Docker, Azure Container Instances, etc.), leyendo configuración desde variables de entorno externas.
