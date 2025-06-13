@@ -1,4 +1,3 @@
-const historyData = {{ history_data|tojson }};
 console.log('Raw history data:', historyData);
 
 const uniqueDates = [...new Set(historyData.map(item => item.datetime))].sort();

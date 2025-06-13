@@ -18,6 +18,9 @@
 {% endblock %}
 
 {% block scripts %}
+	<script>
+	  const historyData = {{ history_data|tojson }};
+	</script>
     <script src="{{ url_for('static', filename='js/charts.js') }}"></script>
     <script src="{{ url_for('static', filename='js/update_table.js') }}"></script>
     <script src="{{ url_for('static', filename='js/table_filters.js') }}"></script>
