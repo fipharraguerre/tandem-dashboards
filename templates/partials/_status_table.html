@@ -1,0 +1,25 @@
+<div class="table-container">
+    <h2>Backup Results</h2>
+    <table id="statusTable">
+        <thead>
+            <tr>
+                <th>Fecha de Creación (GMT)</th>
+                <th>Nombre de VM</th>
+                <th>Tipo</th>
+                <th>Resultado</th>
+                <th>Detalle</th>
+            </tr>
+        </thead>
+        <tbody id="backupTableBody">
+            {% for result in results %}
+            <tr data-type="{{ result[2] }}">
+                <td>{{ result[0] }}</td>
+                <td>{{ result[1] }}</td>
+                <td>{{ result[2] }}</td>
+                <td>{{ result[3] }}</td>
+                <td>{{ result[4] | nl2br | safe }}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

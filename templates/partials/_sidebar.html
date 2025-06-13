@@ -1,0 +1,27 @@
+<div class="sidebar">
+    <h2>TandemStudio Backups</h2>
+    <ul>
+        <li><a href="/">General Summary</a></li>
+        <li><a href="/unsuccessful_tasks">Errors and Warnings</a></li>
+    </ul>
+    <h3>Filtrar por Tipo</h3>
+    {% for label, val in [
+        ("Backup", "BackupJob,Backup"),
+        ("Backup incremental", "Incremental"),
+        ("Backup full", "Full"),
+        ("Replica", "Snapshot"),
+        ("Config", "VeeamConfigurationBackup"),
+        ("Offload", "TieringJob")
+    ] %}
+    <label><input type="checkbox" class="filter-type" value="{{ val }}" clear> {{ label }}</label><br>
+    {% endfor %}
+    <br>
+    <h3>Filtrar por Resultado</h3>
+    {% for label, val in [
+        ("Success", "Success,Completed,ok"),
+        ("Warning", "Warn"),
+        ("Failed", "Fail")
+    ] %}
+    <label><input type="checkbox" class="filter-result" value="{{ val }}" clear> {{ label }}</label><br>
+    {% endfor %}
+</div>
