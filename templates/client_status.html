@@ -11,9 +11,9 @@
     <h1>Status de {{ client_name }}</h1>
     <div class="content-grid">
         {% include "partials/_charts.html" %}
-        {% include "partials/_status_table.html" %}
-        {% include "partials/_update_assessment_table.html" %}
     </div>
+    {% include "partials/_status_table.html" %}
+    {% include "partials/_update_assessment_table.html" %}
 </div>
 {% endblock %}
 
