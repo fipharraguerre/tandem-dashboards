@@ -136,6 +136,82 @@ Este dashboard web proporciona una vista centralizada del estado de los backups 
 - **Alertas visuales**: Indicadores de advertencia para servicios que no han reportado actividad reciente
 - **Zona horaria local**: Conversión automática de timestamps a GMT-3 (Argentina)
 
+---  
+
+# Funcionamiento del Dashboard Principal (index.html)
+
+## Flujo de Datos
+
+El dashboard principal funciona mediante un proceso de varios pasos que actualiza y muestra el estado de todos los clientes de backup:
+
+### 1. Actualización de Estados (`core.py`)
+
+Cuando un usuario accede a la página principal (`/`), se ejecuta automáticamente la función `update_client_status()` que:
+
+- **Obtiene la lista de clientes**: Consulta la tabla `clientes` para obtener todos los nombres de clientes registrados.
+- **Busca hostnames asociados**: Para cada cliente, consulta la tabla `client_hosts` para obtener todos los servidores/hostnames que pertenecen a ese cliente.
+- **Procesa datos por hostname**: Para cada hostname del cliente, ejecuta consultas SQL en las tablas individuales (ej: `VB0003`, `VB0004`, etc.) para contar:
+  - **Backups**: Jobs con `type LIKE '%Backup%'`
+  - **Replicaciones**: Jobs con `vmname LIKE '%Repl%'`  
+  - **Tiering**: Jobs con `type = 'TieringJob'`
+  - **Config Backup**: Último estado de `type = 'VeeamConfigurationBackup'`
+
+### 2. Determinación del Estado General
+
+El sistema evalúa el estado del cliente basándose en una jerarquía de prioridades:
+
+1. Si hay **fallos en backups** → Estado: `fail` (tarjeta roja)
+2. Si hay **fallos en replicaciones o tiering** (pero backups OK) → Estado: `warn` (tarjeta amarilla)  
+3. Si hay **warnings** en cualquier categoría → Estado: `warn` (tarjeta amarilla)
+4. Si todo está bien → Estado: `ok` (tarjeta verde)
+
+### 3. Almacenamiento de Mensajes
+
+Los resultados se guardan en la tabla `clientes` con los siguientes campos:
+- `msgA`: Estado de backups
+- `msgB`: Estado de tiering  
+- `msgC`: Estado de config backup
+- `msgD`: Estado de replicaciones
+- `estado`: Estado general (ok/warn/fail)
+- `last_seen`: Última fecha/hora de actividad
+
+### 4. Visualización en las Tarjetas
+
+El template `index.html` recibe un array de datos donde cada fila (`row`) contiene:
+
+```python
+row[0] = nombre        # Nombre del cliente
+row[1] = estado        # Estado general (ok/warn/fail)
+row[2] = msgA          # "X jobs fueron exitosos en las últimas 24 horas"
+row[3] = msgB          # "X offload(s) fueron exitosos en las últimas 24 horas"  
+row[4] = last_seen     # "2025-09-24 15:30:00"
+row[5] = msgC          # "Success" o "Fail" (config backup)
+row[6] = msgD          # "X replication(s) fueron exitosos en las últimas 24 horas"
+```
+
+### 5. Funcionalidades Adicionales
+
+- **Conversión de zona horaria**: JavaScript convierte automáticamente las fechas UTC a GMT-3 (Argentina)
+- **Alertas de inactividad**: Si `last_seen` es mayor a 24 horas, se muestra un ícono de advertencia ⚠️
+- **Enlaces dinámicos**: Cada tarjeta es clickeable y redirige a `/status/{cliente}` para ver detalles
+
+## Ejemplo de Flujo Completo
+
+1. Usuario visita `/`
+2. Se ejecuta `update_client_status()`
+3. Para el cliente "CLIENTE_A":
+   - Se buscan hostnames asociados: `["VB0003", "VB0004"]`
+   - Se consulta tabla `VB0003`: 5 backups exitosos, 1 replicación exitosa
+   - Se consulta tabla `VB0004`: 3 backups exitosos, 0 replicaciones
+   - Se determina estado: `ok` (todo exitoso)
+   - Se guarda: `msgA="8 jobs exitosos"`, `msgD="1 replication exitosa"`
+4. Se renderiza tarjeta verde con toda la información
+5. JavaScript ajusta fechas a zona horaria local
+
+Este proceso se repite para todos los clientes cada vez que se carga la página principal.
+
+---  
+
 ## Tecnologías utilizadas
 
 - **Backend**: Python con Flask
