@@ -7,6 +7,6 @@ unsuccessful_bp = Blueprint('unsuccessful', __name__)
 def unsuccessful_tasks():
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT hostname, datetime, vmname, type, result, detail FROM doomed_tasks ORDER BY datetime desc")
+    cursor.execute("SELECT hostname, datetime, vmname, type, result, detail FROM doomed_tasks ORDER BY datetime desc LIMIT 500")
     data = cursor.fetchall()
     return render_template('unsuccessful_tasks.html', results=data)

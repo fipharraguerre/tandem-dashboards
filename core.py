@@ -26,6 +26,11 @@ def update_client_status():
         warn_count_tiering = 0
         fail_count_tiering = 0
 
+        # Inicializar las variables para contadores de Replication Jobs
+        success_count_replication = 0
+        warn_count_replication = 0
+        fail_count_replication = 0
+
         # Variable to store the latest datetime value
         last_seen = None
 
@@ -72,6 +77,24 @@ def update_client_status():
             if result_tiering[3]:  # and (last_seen is None or result_tiering[3] > last_seen):
                 last_seen = result_tiering[3]
 
+            # Acumular para Replication Jobs (looking for 'Repl' in vmname)
+            cursor.execute(f"""
+                SELECT
+                    SUM(CASE WHEN result IN ('Success', 'ok', 'Completed') AND vmname LIKE '%Repl%' THEN 1 ELSE 0 END) AS success_count_replication,
+                    SUM(CASE WHEN result = 'Warn' AND vmname LIKE '%Repl%' THEN 1 ELSE 0 END) AS warn_count_replication,
+                    SUM(CASE WHEN result = 'Fail' AND vmname LIKE '%Repl%' THEN 1 ELSE 0 END) AS fail_count_replication,
+                    MAX(CASE WHEN vmname LIKE '%Repl%' THEN datetime ELSE NULL END) AS last_seen_replication
+                FROM `{host_name}`
+            """)
+            result_replication = cursor.fetchone()
+            success_count_replication += result_replication[0]
+            warn_count_replication += result_replication[1]
+            fail_count_replication += result_replication[2]
+
+            # Update last_seen if last_seen_replication is more recent
+            if result_replication[3]:  # and (last_seen is None or result_replication[3] > last_seen):
+                last_seen = result_replication[3]
+
             # Obtener estado de VeeamConfigurationBackup
             cursor.execute(f"""
                 SELECT result
@@ -108,12 +131,27 @@ def update_client_status():
         else:
             statusMsg2 = 'N/A'
 
+        # Configurar el mensaje para Replication Jobs
+        if fail_count_replication > 0:
+            statusMsg4 = f'{fail_count_replication} replication(s) failed in the last 24 hours'
+            # si los backups concluyeron bien pero fallaron las replicaciones, marcar estado warn
+            if estado == 'ok':
+                estado = 'warn'
+        elif warn_count_replication > 0:
+            statusMsg4 = f'{warn_count_replication} replication warning(s) in the last 24 hours'
+            # si los backups concluyeron bien pero hay warnings en replicaciones, marcar estado warn
+            if estado == 'ok':
+                estado = 'warn'
+        elif success_count_replication > 0:
+            statusMsg4 = f'{success_count_replication} replication(s) were successful in the last 24 hours'
+        else:
+            statusMsg4 = 'N/A'
+
         # Guardar el mensaje y el estado en la tabla clientes
         cursor.execute("""
             UPDATE clientes 
-            SET estado = %s, msgA = %s, msgB = %s, msgC = %s, last_seen = %s
+            SET estado = %s, msgA = %s, msgB = %s, msgC = %s, msgD = %s, last_seen = %s
             WHERE nombre = %s
-        """, (estado, statusMsg1, statusMsg2, config_backup_status, last_seen, client_name))
+        """, (estado, statusMsg1, statusMsg2, config_backup_status, statusMsg4, last_seen, client_name))
 
         db.commit()
-

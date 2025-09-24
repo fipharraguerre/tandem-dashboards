@@ -9,6 +9,6 @@ def index():
     update_client_status()
     db = get_db()
     cursor = db.cursor()
-    cursor.execute("SELECT nombre, estado, msgA, msgB, last_seen, msgC FROM clientes")
+    cursor.execute("SELECT nombre, estado, msgA, msgB, last_seen, msgC, msgD FROM clientes")
     data = cursor.fetchall()
     return render_template('index.html', data=data)
